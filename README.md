@@ -1,10 +1,10 @@
-### Earthquake Decision Support System
+# Earthquake Decision Support System
 
 A Streamlit-based interactive dashboard for real-time earthquake monitoring, analysis, and decision support for geologists and emergency management experts.
 
 ## Overview
 
-# The Earthquake Decision Support System is an interactive web dashboard that allows experts to:
+### The Earthquake Decision Support System is an interactive web dashboard that allows experts to:
 Monitor recent and historical earthquake events
 Identify high-risk regions and active aftershock clusters
 Analyze earthquake trends over time
@@ -14,9 +14,9 @@ The dashboard is built with Python, Streamlit, Pandas, and Plotly, and provides 
 
 ## Features
 
-# Executive Summary Metrics: Total events, critical events (M≥6.5), events in the last 24h, average and maximum magnitudes
-# Top Affected Regions: Displays the top 3 regions by number of earthquakes
-# Current Alerts: Highlights high-risk events in the last 24 hours
+### Executive Summary Metrics: Total events, critical events (M≥6.5), events in the last 24h, average and maximum magnitudes
+### Top Affected Regions: Displays the top 3 regions by number of earthquakes
+### Current Alerts: Highlights high-risk events in the last 24 hours
 
 ## Risk Trends:
 
