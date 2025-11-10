@@ -26,7 +26,7 @@ uploaded_file=st.file_uploader('Upload earthquake CSV',type=['csv'])
 def load_data(uploaded_file):
     df=pd.read_csv(uploaded_file)
     df['time']=pd.to_datetime(df['time'], format='%Y-%m-%d %H:%M:%S.%f',errors='coerce')
-    df.dropna(subset=['time'])
+    df=df.dropna(subset=['time'])
 
     df['date']=df['time'].dt.date
     df['year']=df['time'].dt.year
@@ -47,12 +47,41 @@ def load_data(uploaded_file):
         )
     )
 
+    
+
+    
+
+    def haversine(lat1, lon1, lat2, lon2):
+        R = 6371  # Earth radius in km
+        # Convert degrees to radians
+        lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    
+        dlat = lat2 - lat1
+        dlon = lon2 - lon1
+    
+        a = np.sin(dlat / 2)**2 + np.cos(lat1) * np.cos(lat2) * np.sin(dlon / 2)**2
+        c = 2 * np.arcsin(np.sqrt(a))
+    
+        return R * c
+    
     df=df.sort_values('time').reset_index(drop=True)
+    
+    df['dist_km'] = haversine(
+    df['latitude'], df['longitude'],
+    df['latitude'].shift(), df['longitude'].shift() )
+
+    df['dist_km'] = df['dist_km'].fillna(0)
 
     df['hours_since_prev']=df['time'].diff().dt.total_seconds()/3600
     df['hours_since_prev']=df['hours_since_prev'].fillna(0)
 
-    df['cluster_flag']=df['hours_since_prev'] < 24 
+    df['cluster_flag']=(df['hours_since_prev'] <= 24 ) & (df['dist_km'] <= 100 )
+    df.loc[0, 'cluster_flag'] = False 
+    df['cluster_id'] = (~df['cluster_flag']).cumsum()
+    df.loc[df['cluster_flag'] == False, 'cluster_id'] = np.nan
+
+    
+
     return df
 
 if uploaded_file is not None:
@@ -85,12 +114,12 @@ if uploaded_file is not None:
 
     depth_range=st.sidebar.slider("Depth(km)",
         float(df['depth'].min()),float(df['depth'].max()),
-        (float(df['magnitude'].min()),float(df['magnitude'].max()))                          
+        (float(df['depth'].min()),float(df['depth'].max()))                          
     )
 
     risk_levels=st.sidebar.multiselect("Risk Level",
-                ['Low','Moderate','High','Critical'],
-                default=['Moderate','High','Critical'])
+                ['Low','Medium','High','Critical'],
+                default=['Medium','High','Critical'])
     
     tectonic_types=st.sidebar.multiselect('Tectonic Type',
                  ['Crustal','Intermediate','Deep'],
@@ -157,7 +186,7 @@ if uploaded_file is not None:
 
     if len(alert_df) > 0:
         st.error(f"High risk events in last 24h: {len(alert_df)}")
-        for _,row in alert_df.head(6).iterrows:
+        for _,row in alert_df.head(6).iterrows():
             st.warning(f"**M{row['magnitude']:.1f}** - {row['place'][:50]} | {row['time_ago']:.1f}h ago")
     else:
         st.success("No high-risk events in last 24h")
@@ -262,10 +291,11 @@ if uploaded_file is not None:
     clusters = filter_df[filter_df['cluster_flag'] == True].copy()
     
     if len(clusters) > 0:
-        st.warning(f"{len(clusters)} events in active clusters (within 24h of previous event)")
+        st.warning(f"{len(clusters)} events in active clusters (within 24h of previous event and 100 km of radius)")
 
         # Group clusters 
-        clusters['cluster_id'] = (clusters['hours_since_prev'] > 24).cumsum()
+        # clusters['cluster_id'] = ((clusters['hours_since_prev'] > 24) & (clusters['dist_km'] > 100)).cumsum()
+        
 
         #  visible markers
         fig_cluster = px.scatter_mapbox(
